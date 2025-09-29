@@ -1,24 +1,25 @@
 <?php
 
+use App\Livewire\Movimenti\{CaricoWizard, ContoLavoroWizard, ScaricoWizard, TransferWizard};
 use Illuminate\Support\Facades\Route;
-use App\Livewire\Movimenti\TransferWizard;
 
-Route::view('/', 'welcome');
+Route::get('/', function () {
+    return auth()->check()
+        ? redirect()->route('dashboard')
+        : view('welcome');
+})->name('home');
 
-Route::view('dashboard', 'dashboard')
-    ->middleware(['auth', 'verified'])
-    ->name('dashboard');
+Route::middleware(['auth', 'verified'])->group(function () {
+    Route::view('/dashboard', 'dashboard')->name('dashboard');
+    Route::view('/profile', 'profile')->name('profile');
 
-Route::view('profile', 'profile')
-    ->middleware(['auth'])
-    ->name('profile');
+    Route::redirect('/movimentazioni', '/movimenti/trasferimento')->name('movimenti.index');
 
+    Route::get('/movimenti/trasferimento', TransferWizard::class)->name('movimenti.transfer');
+    Route::get('/movimenti/carico', CaricoWizard::class)->name('movimenti.carico');
+    Route::get('/movimenti/scarico', ScaricoWizard::class)->name('movimenti.scarico');
 
-    Route::redirect('/movimentazioni', '/movimenti/trasferimento'); // ⬅️ aggiungi questa riga
-    
-    Route::get('/', fn() => view('dashboard'))->name('dashboard');
-    
-    Route::get('/movimenti/trasferimento', TransferWizard::class)->middleware(['auth'])
-         ->can('movimenti.transfer')   // se non hai ancora auth/permessi, commenta temporaneamente
-        ->name('movimenti.transfer');
+    Route::get('/conto-lavoro', ContoLavoroWizard::class)->name('conto-lavoro.wizard');
+});
+
 require __DIR__.'/auth.php';
