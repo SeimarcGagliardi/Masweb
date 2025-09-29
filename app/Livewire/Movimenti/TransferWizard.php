@@ -1,14 +1,11 @@
 <?php // app/Livewire/Movimenti/TransferWizard.php
 namespace App\Livewire\Movimenti;
 
-use App\Http\Requests\TransferStoreRequest;
-use App\Models\{Articolo,Magazzino,Movimento};
+use App\Models\{Articolo,Magazzino,Movimento,Ubicazione};
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
-use Illuminate\Support\Facades\Validator;
-
 use Illuminate\Support\Facades\DB;
 
 
@@ -46,38 +43,55 @@ class TransferWizard extends Component
         $this->step++;
     }
     private function buildRiepilogo(): void
-{
-    $ids = collect($this->righe)->pluck('articolo_id')->filter()->unique()->all();
-    $articoli = Articolo::whereIn('id', $ids)
-        ->get(['id','codice','descrizione'])
-        ->keyBy('id');
+    {
+        $ids = collect($this->righe)->pluck('articolo_id')->filter()->unique()->all();
+        $articoli = Articolo::whereIn('id', $ids)
+            ->get(['id','codice','descrizione'])
+            ->keyBy('id');
 
-    $this->riepilogo = [
-        'origine'      => $this->origine,
-        'destinazione' => $this->destinazione,
-        'righe'        => collect($this->righe)->map(function ($r) use ($articoli) {
-            $a = $articoli->get((int)$r['articolo_id']);
-            return [
-                'codice' => $a?->codice,
-                'descr'  => $a?->descrizione,
-                'qta'    => $r['qta'],
-                'lotto'  => $r['lotto'] ?? null,
-            ];
-        })->all(),
-    ];
-}
+        $origUbicazione = $this->origine['ubicazione_id']
+            ? Ubicazione::find($this->origine['ubicazione_id'])
+            : null;
+        $destUbicazione = $this->destinazione['ubicazione_id']
+            ? Ubicazione::find($this->destinazione['ubicazione_id'])
+            : null;
+
+        $this->riepilogo = [
+            'origine'      => $this->origine + ['ubicazione_label' => $origUbicazione?->descrizione],
+            'destinazione' => $this->destinazione + ['ubicazione_label' => $destUbicazione?->descrizione],
+            'righe'        => collect($this->righe)->map(function ($r) use ($articoli) {
+                $a = $articoli->get((int)$r['articolo_id']);
+                return [
+                    'codice' => $a?->codice,
+                    'descr'  => $a?->descrizione,
+                    'qta'    => $r['qta'],
+                    'lotto'  => $r['lotto'] ?? null,
+                ];
+            })->all(),
+        ];
+    }
     public function back(): void { if($this->step>1) $this->step--; }
 
     protected function validateStep(int $step): void {
         if ($step === 1) {
-            $this->validate([
+            $rules = [
                 'origine.magazzino_id' => 'required|integer|exists:magazzini,id|different:destinazione.magazzino_id',
-            ]);
+            ];
+            $ubicRule = $this->magazzinoRichiedeUbicazione($this->origine['magazzino_id'])
+                ? 'required|integer|exists:ubicazioni,id'
+                : 'nullable|integer|exists:ubicazioni,id';
+            $rules['origine.ubicazione_id'] = $ubicRule;
+            $this->validate($rules);
         }
         if ($step === 2) {
-            $this->validate([
+            $rules = [
                 'destinazione.magazzino_id' => 'required|integer|exists:magazzini,id',
-            ]);
+            ];
+            $ubicRule = $this->magazzinoRichiedeUbicazione($this->destinazione['magazzino_id'])
+                ? 'required|integer|exists:ubicazioni,id'
+                : 'nullable|integer|exists:ubicazioni,id';
+            $rules['destinazione.ubicazione_id'] = $ubicRule;
+            $this->validate($rules);
         }
         if ($step === 3) {
             $rules = [];
@@ -88,36 +102,30 @@ class TransferWizard extends Component
             $this->validate($rules);
         }
         if ($step === 4) {
-            // costruisci riepilogo
-            $this->riepilogo = [
-                'origine' => $this->origine,
-                'destinazione' => $this->destinazione,
-                'righe' => collect($this->righe)->map(function($r){
-                    $a = Articolo::find($r['articolo_id']);
-                    return $r + ['codice'=>$a?->codice,'descr'=>$a?->descrizione];
-                })->all()
-            ];
+            $this->buildRiepilogo();
         }
     }
 
-   
-    
+
+
     public function conferma(): void
     {
         try {
             // ✅ validazione dentro al try: se fallisce, la intercettiamo
             $data = $this->validate([
                 'origine.magazzino_id'        => 'required|integer|exists:magazzini,id|different:destinazione.magazzino_id',
+                'origine.ubicazione_id'       => ($this->magazzinoRichiedeUbicazione($this->origine['magazzino_id']) ? 'required' : 'nullable').'|integer|exists:ubicazioni,id',
                 'destinazione.magazzino_id'   => 'required|integer|exists:magazzini,id',
+                'destinazione.ubicazione_id'  => ($this->magazzinoRichiedeUbicazione($this->destinazione['magazzino_id']) ? 'required' : 'nullable').'|integer|exists:ubicazioni,id',
                 'righe'                       => 'required|array|min:1',
                 'righe.*.articolo_id'         => 'required|integer|exists:articoli,id',
                 'righe.*.qta'                 => 'required|numeric|gt:0',
                 'righe.*.lotto'               => 'nullable|string',
             ]);
-    
+
             DB::transaction(function () use ($data) {
                 $link = (string) Str::uuid();
-    
+
                 foreach ($data['righe'] as $r) {
                     // OUT
                     Movimento::create([
@@ -125,6 +133,7 @@ class TransferWizard extends Component
                         'articolo_id'     => $r['articolo_id'],
                         'qta'             => $r['qta'],
                         'magazzino_orig'  => $data['origine']['magazzino_id'],
+                        'ubicazione_orig' => $data['origine']['ubicazione_id'] ?? null,
                         'magazzino_dest'  => null,
                         'lotto'           => $r['lotto'] ?? null,
                         'utente_id'       => auth()->id(),
@@ -138,6 +147,7 @@ class TransferWizard extends Component
                         'qta'             => $r['qta'],
                         'magazzino_orig'  => null,
                         'magazzino_dest'  => $data['destinazione']['magazzino_id'],
+                        'ubicazione_dest' => $data['destinazione']['ubicazione_id'] ?? null,
                         'lotto'           => $r['lotto'] ?? null,
                         'utente_id'       => auth()->id(),
                         'link_logico'     => $link,
@@ -169,6 +179,33 @@ class TransferWizard extends Component
         return view('livewire.movimenti.transfer-wizard', [
             'magazzini'=> Magazzino::where('attivo',true)->orderBy('descrizione')->get(),
             'articoli' => Articolo::where('attivo',true)->orderBy('descrizione')->limit(200)->get(),
+            'origineUbicazioni' => $this->origine['magazzino_id']
+                ? Ubicazione::where('magazzino_id', $this->origine['magazzino_id'])->where('attiva', true)->orderBy('descrizione')->get()
+                : collect(),
+            'destinazioneUbicazioni' => $this->destinazione['magazzino_id']
+                ? Ubicazione::where('magazzino_id', $this->destinazione['magazzino_id'])->where('attiva', true)->orderBy('descrizione')->get()
+                : collect(),
         ]);
+    }
+
+    public function updatedOrigineMagazzinoId($value): void
+    {
+        $this->origine['ubicazione_id'] = null;
+    }
+
+    public function updatedDestinazioneMagazzinoId($value): void
+    {
+        $this->destinazione['ubicazione_id'] = null;
+    }
+
+    protected function magazzinoRichiedeUbicazione($magazzinoId): bool
+    {
+        if (!$magazzinoId) {
+            return false;
+        }
+
+        return Ubicazione::where('magazzino_id', $magazzinoId)
+            ->where('attiva', true)
+            ->exists();
     }
 }

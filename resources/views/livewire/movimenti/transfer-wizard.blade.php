@@ -24,6 +24,19 @@
       @endforeach
     </select>
     @error('origine.magazzino_id')<p class="text-red-600 text-sm">{{ $message }}</p>@enderror
+
+    @if($origineUbicazioni->isNotEmpty())
+      <label class="block text-sm font-medium">Ubicazione di origine</label>
+      <select wire:model="origine.ubicazione_id" class="w-full border rounded-lg p-2">
+        <option value="">— seleziona —</option>
+        @foreach($origineUbicazioni as $u)
+          <option value="{{ $u->id }}">{{ $u->codice }} — {{ $u->descrizione }}</option>
+        @endforeach
+      </select>
+      @error('origine.ubicazione_id')<p class="text-red-600 text-sm">{{ $message }}</p>@enderror
+    @elseif($origine['magazzino_id'])
+      <p class="text-xs text-slate-500">Questo magazzino non ha ubicazioni attive: il trasferimento userà l'intero magazzino.</p>
+    @endif
   </div>
   @endif
 
@@ -38,6 +51,18 @@
       @endforeach
     </select>
     @error('destinazione.magazzino_id')<p class="text-red-600 text-sm">{{ $message }}</p>@enderror
+    @if($destinazioneUbicazioni->isNotEmpty())
+      <label class="block text-sm font-medium">Ubicazione di destinazione</label>
+      <select wire:model="destinazione.ubicazione_id" class="w-full border rounded-lg p-2">
+        <option value="">— seleziona —</option>
+        @foreach($destinazioneUbicazioni as $u)
+          <option value="{{ $u->id }}">{{ $u->codice }} — {{ $u->descrizione }}</option>
+        @endforeach
+      </select>
+      @error('destinazione.ubicazione_id')<p class="text-red-600 text-sm">{{ $message }}</p>@enderror
+    @elseif($destinazione['magazzino_id'])
+      <p class="text-xs text-slate-500">Non sono presenti ubicazioni attive per il magazzino scelto.</p>
+    @endif
   </div>
   @endif
 
@@ -83,8 +108,20 @@
   <div class="bg-white rounded-2xl shadow p-4 space-y-4">
     <p class="text-sm">Controlla i dati e procedi alla conferma.</p>
     <ul class="text-sm space-y-1">
-      <li><strong>Origine:</strong> {{ optional($magazzini->firstWhere('id', $origine['magazzino_id']))?->descrizione }}</li>
-      <li><strong>Destinazione:</strong> {{ optional($magazzini->firstWhere('id', $destinazione['magazzino_id']))?->descrizione }}</li>
+      <li>
+        <strong>Origine:</strong>
+        {{ optional($magazzini->firstWhere('id', $origine['magazzino_id']))?->descrizione }}
+        @if(!empty($riepilogo['origine']['ubicazione_label']))
+          <span class="block text-xs text-slate-500">Ubicazione: {{ $riepilogo['origine']['ubicazione_label'] }}</span>
+        @endif
+      </li>
+      <li>
+        <strong>Destinazione:</strong>
+        {{ optional($magazzini->firstWhere('id', $destinazione['magazzino_id']))?->descrizione }}
+        @if(!empty($riepilogo['destinazione']['ubicazione_label']))
+          <span class="block text-xs text-slate-500">Ubicazione: {{ $riepilogo['destinazione']['ubicazione_label'] }}</span>
+        @endif
+      </li>
     </ul>
     <div class="overflow-x-auto">
       <table class="min-w-full text-sm">
