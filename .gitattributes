@@ -1,11 +1,5 @@
-* text=auto eol=lf
-
-*.blade.php diff=html
-*.css diff=css
-*.html diff=html
-*.md diff=markdown
-*.php diff=php
-
-/.github export-ignore
-CHANGELOG.md export-ignore
-.styleci.yml export-ignore
+# Mantieni SEMPRE la versione locale (Codex) su questi file durante merge/rebase
+resources/views/livewire/movimenti/carico-wizard.blade.php      merge=ours
+resources/views/livewire/movimenti/conto-lavoro-wizard.blade.php merge=ours
+resources/views/livewire/movimenti/scarico-wizard.blade.php      merge=ours
+resources/views/livewire/movimenti/transfer-wizard.blade.php     merge=ours
