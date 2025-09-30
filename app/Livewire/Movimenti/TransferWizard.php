@@ -2,17 +2,20 @@
 namespace App\Livewire\Movimenti;
 
 use App\Models\{Articolo,Magazzino,Movimento,Ubicazione};
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
-use Illuminate\Support\Facades\DB;
+use Throwable;
 
 
 #[Layout('layouts.app')]
 class TransferWizard extends Component
 {
     public int $step = 1;
+    protected int $maxStep = 4;
+    protected int $reviewStep = 3;
 
     public array $origine = ['magazzino_id'=>null,'ubicazione_id'=>null];
     public array $destinazione = ['magazzino_id'=>null,'ubicazione_id'=>null];
@@ -33,14 +36,25 @@ class TransferWizard extends Component
 
     public function next(): void
     {
-        $this->validateStep($this->step);
-    
-        // 👇 se sto uscendo dallo step 3, preparo il riepilogo per lo step 4
-        if ($this->step === 3) {
-            $this->buildRiepilogo();
+        if ($this->step >= $this->maxStep) {
+            return;
         }
-    
-        $this->step++;
+
+        try {
+            $this->validateStep($this->step);
+
+            if ($this->step === $this->reviewStep) {
+                $this->buildRiepilogo();
+            }
+
+            $this->step = min($this->step + 1, $this->maxStep);
+            $this->resetErrorBag();
+        } catch (ValidationException $exception) {
+            $this->setErrorBag($exception->validator->getMessageBag());
+        } catch (Throwable $exception) {
+            report($exception);
+            $this->addError('general', 'Si è verificato un errore inatteso. Riprova oppure contatta il supporto.');
+        }
     }
     private function buildRiepilogo(): void
     {
@@ -70,7 +84,15 @@ class TransferWizard extends Component
             })->all(),
         ];
     }
-    public function back(): void { if($this->step>1) $this->step--; }
+    public function back(): void
+    {
+        if ($this->step <= 1) {
+            return;
+        }
+
+        $this->step--;
+        $this->resetErrorBag();
+    }
 
     protected function validateStep(int $step): void {
         if ($step === 1) {
@@ -100,9 +122,6 @@ class TransferWizard extends Component
                 $rules["righe.$i.qta"] = 'required|numeric|gt:0';
             }
             $this->validate($rules);
-        }
-        if ($step === 4) {
-            $this->buildRiepilogo();
         }
     }
 
@@ -158,16 +177,13 @@ class TransferWizard extends Component
     
             session()->flash('ok', 'Trasferimento effettuato correttamente.');
             $this->redirectRoute('movimenti.transfer', navigate: true);
-        }
-        catch (ValidationException $ve) {
-            // ⬅️ Torna allo STEP 3 e mostra gli errori sui campi
-            $this->step = 3;
-            $this->setErrorBag($ve->validator->getMessageBag());
+        } catch (ValidationException $exception) {
+            $this->setErrorBag($exception->validator->getMessageBag());
+            $this->step = $this->reviewStep;
             $this->addError('general', 'Controlla i campi evidenziati e riprova.');
-        }
-        catch (\Throwable $e) {
-            \Log::error('Errore trasferimento', ['message' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
-            $this->addError('general', 'Ops, qualcosa è andato storto: '.$e->getMessage());
+        } catch (Throwable $exception) {
+            report($exception);
+            $this->addError('general', 'Impossibile completare il trasferimento in questo momento. Riprova più tardi.');
         }
     }
     

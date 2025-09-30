@@ -6,13 +6,17 @@ use App\Models\{Articolo, Magazzino, Movimento, OrdineContoLavoro, RigaOCL, Terz
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
+use Throwable;
 
 #[Layout('layouts.app')]
 class ContoLavoroWizard extends Component
 {
     public int $step = 1;
+    protected int $maxStep = 3;
+    protected int $reviewStep = 2;
     public string $fase = 'invio';
 
     public array $invio = [
@@ -55,6 +59,8 @@ class ContoLavoroWizard extends Component
         $this->fase = $fase;
         $this->step = 1;
         $this->riepilogo = [];
+        $this->resetErrorBag();
+        $this->resetValidation();
     }
 
     public function updatedInvioMagazzinoId($value): void
@@ -85,21 +91,37 @@ class ContoLavoroWizard extends Component
 
     public function next(): void
     {
-        $this->validateStep($this->step);
-        if ($this->fase === 'invio' && $this->step === 2) {
-            $this->buildRiepilogoInvio();
+        if ($this->step >= $this->maxStep) {
+            return;
         }
-        if ($this->fase === 'rientro' && $this->step === 2) {
-            $this->buildRiepilogoRientro();
+
+        try {
+            $this->validateStep($this->step);
+
+            if ($this->step === $this->reviewStep) {
+                $this->fase === 'invio'
+                    ? $this->buildRiepilogoInvio()
+                    : $this->buildRiepilogoRientro();
+            }
+
+            $this->step = min($this->step + 1, $this->maxStep);
+            $this->resetErrorBag();
+        } catch (ValidationException $exception) {
+            $this->setErrorBag($exception->validator->getMessageBag());
+        } catch (Throwable $exception) {
+            report($exception);
+            $this->addError('general', 'Si è verificato un errore inatteso. Riprova oppure contatta il supporto.');
         }
-        $this->step++;
     }
 
     public function back(): void
     {
-        if ($this->step > 1) {
-            $this->step--;
+        if ($this->step <= 1) {
+            return;
         }
+
+        $this->step--;
+        $this->resetErrorBag();
     }
 
     protected function validateStep(int $step): void
@@ -244,19 +266,28 @@ class ContoLavoroWizard extends Component
 
     public function conferma(): void
     {
-        if ($this->fase === 'invio') {
-            $this->validateInvioStep(1);
-            $this->validateInvioStep(2);
-            $this->storeInvio();
-            session()->flash('ok', 'Invio al terzista registrato.');
-        } else {
-            $this->validateRientroStep(1);
-            $this->validateRientroStep(2);
-            $this->storeRientro();
-            session()->flash('ok', 'Rientro conto lavoro aggiornato.');
-        }
+        try {
+            if ($this->fase === 'invio') {
+                $this->validateInvioStep(1);
+                $this->validateInvioStep(2);
+                $this->storeInvio();
+                session()->flash('ok', 'Invio al terzista registrato.');
+            } else {
+                $this->validateRientroStep(1);
+                $this->validateRientroStep(2);
+                $this->storeRientro();
+                session()->flash('ok', 'Rientro conto lavoro aggiornato.');
+            }
 
-        $this->redirectRoute('conto-lavoro.wizard', navigate: true);
+            $this->redirectRoute('conto-lavoro.wizard', navigate: true);
+        } catch (ValidationException $exception) {
+            $this->setErrorBag($exception->validator->getMessageBag());
+            $this->step = min($this->step, $this->reviewStep);
+            $this->addError('general', 'Controlla i campi evidenziati e riprova.');
+        } catch (Throwable $exception) {
+            report($exception);
+            $this->addError('general', 'Impossibile completare l\'operazione in questo momento. Riprova più tardi.');
+        }
     }
 
     protected function storeInvio(): void

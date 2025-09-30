@@ -1,0 +1,18 @@
+<svg width="320" height="220" viewBox="0 0 320 220" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">Texture di filati</title>
+  <desc id="desc">Linee intrecciate che richiamano fibre tessili.</desc>
+  <defs>
+    <linearGradient id="fibersGradient" x1="0" y1="0" x2="320" y2="220" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#fde68a"/>
+      <stop offset="0.45" stop-color="#fbcfe8"/>
+      <stop offset="1" stop-color="#c4b5fd"/>
+    </linearGradient>
+    <pattern id="fiberLines" width="24" height="24" patternUnits="userSpaceOnUse" patternTransform="rotate(25)">
+      <path d="M0 12H24" stroke="rgba(255,255,255,0.6)" stroke-width="6" stroke-linecap="round"/>
+    </pattern>
+  </defs>
+  <rect width="320" height="220" rx="36" fill="url(#fibersGradient)"/>
+  <rect x="18" y="18" width="284" height="184" rx="32" fill="url(#fiberLines)" opacity="0.65"/>
+  <path d="M30 40C80 120 130 60 180 140C210 188 250 182 290 150" stroke="rgba(255,255,255,0.75)" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M30 120C60 160 110 160 150 110C200 50 250 90 290 70" stroke="rgba(255,255,255,0.45)" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

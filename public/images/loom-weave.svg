@@ -1,0 +1,26 @@
+<svg width="320" height="220" viewBox="0 0 320 220" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">Telaio stilizzato</title>
+  <desc id="desc">Geometrie intrecciate che richiamano l&#39;ordito di un telaio.</desc>
+  <defs>
+    <linearGradient id="warpGradient" x1="0" y1="0" x2="0" y2="220" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#e0f2fe"/>
+      <stop offset="1" stop-color="#c7d2fe"/>
+    </linearGradient>
+  </defs>
+  <rect width="320" height="220" rx="36" fill="url(#warpGradient)"/>
+  <g stroke-width="10" stroke-linecap="round" stroke-linejoin="round" opacity="0.9">
+    <path d="M40 30V190" stroke="#38bdf8"/>
+    <path d="M80 30V190" stroke="#818cf8"/>
+    <path d="M120 30V190" stroke="#38bdf8"/>
+    <path d="M160 30V190" stroke="#6366f1"/>
+    <path d="M200 30V190" stroke="#38bdf8"/>
+    <path d="M240 30V190" stroke="#818cf8"/>
+    <path d="M280 30V190" stroke="#38bdf8"/>
+  </g>
+  <g stroke-width="10" stroke-linecap="round" stroke-linejoin="round" opacity="0.8">
+    <path d="M30 70H290" stroke="#f97316"/>
+    <path d="M30 110H290" stroke="#f59e0b"/>
+    <path d="M30 150H290" stroke="#fb7185"/>
+  </g>
+  <rect x="32" y="32" width="256" height="156" rx="26" stroke="rgba(255,255,255,0.6)" stroke-width="8" fill="none"/>
+</svg>

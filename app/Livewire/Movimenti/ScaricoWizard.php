@@ -5,13 +5,17 @@ namespace App\Livewire\Movimenti;
 use App\Models\{Articolo, Magazzino, Movimento, Ubicazione};
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
+use Throwable;
 
 #[Layout('layouts.app')]
 class ScaricoWizard extends Component
 {
     public int $step = 1;
+    protected int $maxStep = 3;
+    protected int $reviewStep = 2;
 
     public array $contesto = [
         'tipo' => 'prelievo',
@@ -54,18 +58,34 @@ class ScaricoWizard extends Component
 
     public function next(): void
     {
-        $this->validateStep($this->step);
-        if ($this->step === 2) {
-            $this->buildRiepilogo();
+        if ($this->step >= $this->maxStep) {
+            return;
         }
-        $this->step++;
+
+        try {
+            $this->validateStep($this->step);
+            if ($this->step === $this->reviewStep) {
+                $this->buildRiepilogo();
+            }
+
+            $this->step = min($this->step + 1, $this->maxStep);
+            $this->resetErrorBag();
+        } catch (ValidationException $exception) {
+            $this->setErrorBag($exception->validator->getMessageBag());
+        } catch (Throwable $exception) {
+            report($exception);
+            $this->addError('general', 'Si è verificato un errore inatteso. Riprova oppure contatta il supporto.');
+        }
     }
 
     public function back(): void
     {
-        if ($this->step > 1) {
-            $this->step--;
+        if ($this->step <= 1) {
+            return;
         }
+
+        $this->step--;
+        $this->resetErrorBag();
     }
 
     protected function validateStep(int $step): void
@@ -134,38 +154,47 @@ class ScaricoWizard extends Component
 
     public function conferma(): void
     {
-        $this->validateStep(1);
-        $this->validateStep(2);
+        try {
+            $this->validateStep(1);
+            $this->validateStep(2);
 
-        DB::transaction(function () {
-            $link = (string) Str::uuid();
-            foreach ($this->righe as $riga) {
-                $payload = [
-                    'articolo_id' => $riga['articolo_id'],
-                    'qta' => $riga['qta'],
-                    'lotto' => $riga['lotto'] ?: null,
-                    'utente_id' => auth()->id(),
-                    'link_logico' => $link,
-                    'note' => $this->buildNota(),
-                    'riferimento' => $this->contesto['commessa'],
-                ];
+            DB::transaction(function () {
+                $link = (string) Str::uuid();
+                foreach ($this->righe as $riga) {
+                    $payload = [
+                        'articolo_id' => $riga['articolo_id'],
+                        'qta' => $riga['qta'],
+                        'lotto' => $riga['lotto'] ?: null,
+                        'utente_id' => auth()->id(),
+                        'link_logico' => $link,
+                        'note' => $this->buildNota(),
+                        'riferimento' => $this->contesto['commessa'],
+                    ];
 
-                if ($this->contesto['tipo'] === 'prelievo') {
-                    $payload['tipo'] = 'SCARICO';
-                    $payload['magazzino_orig'] = $this->contesto['magazzino_id'];
-                    $payload['ubicazione_orig'] = $this->contesto['ubicazione_id'] ?: null;
-                } else {
-                    $payload['tipo'] = 'CARICO';
-                    $payload['magazzino_dest'] = $this->contesto['magazzino_id'];
-                    $payload['ubicazione_dest'] = $this->contesto['ubicazione_id'] ?: null;
+                    if ($this->contesto['tipo'] === 'prelievo') {
+                        $payload['tipo'] = 'SCARICO';
+                        $payload['magazzino_orig'] = $this->contesto['magazzino_id'];
+                        $payload['ubicazione_orig'] = $this->contesto['ubicazione_id'] ?: null;
+                    } else {
+                        $payload['tipo'] = 'CARICO';
+                        $payload['magazzino_dest'] = $this->contesto['magazzino_id'];
+                        $payload['ubicazione_dest'] = $this->contesto['ubicazione_id'] ?: null;
+                    }
+
+                    Movimento::create($payload);
                 }
+            });
 
-                Movimento::create($payload);
-            }
-        });
-
-        session()->flash('ok', $this->contesto['tipo'] === 'prelievo' ? 'Prelievo registrato.' : 'Reso registrato.');
-        $this->redirectRoute('movimenti.scarico', navigate: true);
+            session()->flash('ok', $this->contesto['tipo'] === 'prelievo' ? 'Prelievo registrato.' : 'Reso registrato.');
+            $this->redirectRoute('movimenti.scarico', navigate: true);
+        } catch (ValidationException $exception) {
+            $this->setErrorBag($exception->validator->getMessageBag());
+            $this->step = min($this->step, $this->reviewStep);
+            $this->addError('general', 'Controlla i campi evidenziati e riprova.');
+        } catch (Throwable $exception) {
+            report($exception);
+            $this->addError('general', 'Impossibile completare il salvataggio in questo momento. Riprova più tardi.');
+        }
     }
 
     protected function buildNota(): ?string

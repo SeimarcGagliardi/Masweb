@@ -1,0 +1,31 @@
+<svg width="320" height="220" viewBox="0 0 320 220" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">Magazzino stilizzato</title>
+  <desc id="desc">Scaffalature geometriche che richiamano un deposito moderno.</desc>
+  <defs>
+    <linearGradient id="rackGradient" x1="0" y1="0" x2="320" y2="220" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#f1f5f9"/>
+      <stop offset="1" stop-color="#bfdbfe"/>
+    </linearGradient>
+  </defs>
+  <rect width="320" height="220" rx="36" fill="url(#rackGradient)"/>
+  <g stroke="#1d4ed8" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" opacity="0.9">
+    <rect x="50" y="40" width="70" height="140" rx="12" fill="#ffffff"/>
+    <rect x="130" y="40" width="70" height="140" rx="12" fill="#ffffff"/>
+    <rect x="210" y="40" width="60" height="140" rx="12" fill="#ffffff"/>
+    <path d="M50 90H120"/>
+    <path d="M50 140H120"/>
+    <path d="M130 90H200"/>
+    <path d="M130 140H200"/>
+    <path d="M210 90H270"/>
+    <path d="M210 140H270"/>
+  </g>
+  <g fill="#3b82f6" opacity="0.85">
+    <rect x="60" y="60" width="50" height="26" rx="6"/>
+    <rect x="60" y="110" width="50" height="26" rx="6"/>
+    <rect x="140" y="60" width="50" height="26" rx="6"/>
+    <rect x="140" y="110" width="50" height="26" rx="6"/>
+    <rect x="220" y="60" width="40" height="26" rx="6"/>
+    <rect x="220" y="110" width="40" height="26" rx="6"/>
+  </g>
+  <path d="M36 188H284" stroke="rgba(15,23,42,0.35)" stroke-width="8" stroke-linecap="round"/>
+</svg>
