@@ -1,0 +1,11 @@
+#!/bin/bash
+# Se sei indietro rispetto a origin/main, riallinea e poi push
+set -e
+git fetch origin main
+LOCAL=$(git rev-parse @)
+REMOTE=$(git rev-parse @{u})
+BASE=$(git merge-base @ @{u})
+if [ "$LOCAL" = "$BASE" ]; then
+  scripts/codex-pre.sh main
+fi
+exit 0

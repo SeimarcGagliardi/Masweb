@@ -1,0 +1,4 @@
+#!/bin/bash
+# Allinea PRIMA di ogni commit
+scripts/codex-pre.sh main >/dev/null 2>&1 || true
+exit 0
