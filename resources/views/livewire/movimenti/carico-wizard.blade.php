@@ -1,18 +1,37 @@
 <div class="mx-auto max-w-5xl p-4 space-y-6">
   <h1 class="text-2xl font-semibold">Registrazione carico</h1>
 
-  <div class="flex items-center gap-2 text-sm">
-    @foreach ([1=>'Dati generali',2=>'Articoli',3=>'Riepilogo'] as $i => $label)
-      <div class="flex items-center gap-2">
-        <div class="w-8 h-8 rounded-full flex items-center justify-center {{ $step >= $i ? 'bg-green-600 text-white' : 'bg-gray-200' }}">{{ $i }}</div>
-        <span class="{{ $step >= $i ? 'font-medium' : 'text-gray-500' }}">{{ $label }}</span>
-      </div>
-      @if($i < 3)<div class="flex-1 h-px bg-gray-200"></div>@endif
-    @endforeach
+  @php
+    $wizardSteps = [
+      1 => 'Dati generali',
+      2 => 'Articoli',
+      3 => 'Riepilogo',
+    ];
+  @endphp
+
+  <div class="rounded-3xl border border-slate-200 bg-white/70 p-4 shadow-sm backdrop-blur">
+    <ol class="flex flex-col gap-4 text-sm md:flex-row md:items-center">
+      @foreach($wizardSteps as $i => $label)
+        <li class="flex items-center gap-3">
+          <div class="flex h-9 w-9 items-center justify-center rounded-full border transition-all duration-200 {{ $step >= $i ? 'border-green-500 bg-green-500 text-white shadow-inner' : 'border-slate-200 bg-slate-100 text-slate-500' }}">
+            {{ $i }}
+          </div>
+          <div class="flex flex-col">
+            <span class="font-semibold {{ $step >= $i ? 'text-slate-900' : 'text-slate-500' }}">{{ $label }}</span>
+            <span class="text-xs text-slate-400">Passo {{ $i }} di {{ count($wizardSteps) }}</span>
+          </div>
+        </li>
+        @if($i < count($wizardSteps))
+          <div class="hidden flex-1 md:block">
+            <div class="h-0.5 rounded-full bg-gradient-to-r from-green-300 via-green-500 to-green-300 opacity-70"></div>
+          </div>
+        @endif
+      @endforeach
+    </ol>
   </div>
 
-  @if($step === 1)
-    <div class="card space-y-4">
+  @if($step == 1)
+    <div class="space-y-6 rounded-3xl border border-slate-200 bg-white/80 p-5 shadow-sm backdrop-blur">
       <div>
         <label class="block text-sm font-medium">Magazzino di destinazione</label>
         <select wire:model="contesto.magazzino_id" class="w-full border rounded-xl p-2">
@@ -67,15 +86,15 @@
     </div>
   @endif
 
-  @if($step === 2)
-    <div class="card space-y-4">
+  @if($step == 2)
+    <div class="space-y-5 rounded-3xl border border-slate-200 bg-white/80 p-5 shadow-sm backdrop-blur">
       <div class="flex items-center justify-between">
         <h2 class="font-medium">Articoli in ingresso</h2>
         <button type="button" wire:click="addRiga" class="btn-secondary">+ Aggiungi riga</button>
       </div>
 
       @foreach($righe as $i => $riga)
-        <div class="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
+        <div class="grid grid-cols-1 items-end gap-3 rounded-2xl border border-slate-100 bg-slate-50/60 p-4 md:grid-cols-12">
           <div class="md:col-span-6">
             <label class="block text-sm">Articolo</label>
             <select wire:model="righe.{{ $i }}.articolo_id" class="w-full border rounded-xl p-2">
@@ -105,8 +124,8 @@
     </div>
   @endif
 
-  @if($step === 3)
-    <div class="card space-y-4">
+  @if($step == 3)
+    <div class="space-y-5 rounded-3xl border border-slate-200 bg-white/80 p-5 shadow-sm backdrop-blur">
       <h2 class="font-medium">Riepilogo carico</h2>
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
         <div>
@@ -145,8 +164,8 @@
     </div>
   @endif
 
-  <div class="flex justify-between">
-    <button type="button" class="btn-secondary" wire:click="back" @disabled($step===1)>Indietro</button>
+  <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+    <button type="button" class="btn-secondary" wire:click="back" @disabled($step==1)>Indietro</button>
     @if($step < 3)
       <button type="button" class="btn-primary" wire:click="next">Avanti</button>
     @else
