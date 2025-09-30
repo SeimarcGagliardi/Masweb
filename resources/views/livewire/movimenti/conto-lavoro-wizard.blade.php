@@ -1,26 +1,48 @@
 <div class="mx-auto max-w-6xl p-4 space-y-6">
-  <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+  <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
     <h1 class="text-2xl font-semibold">Gestione conto lavoro</h1>
-    <div class="flex rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
-      <button type="button" wire:click="switchFase('invio')" class="px-4 py-2 text-sm font-medium {{ $fase === 'invio' ? 'bg-brand-600 text-white' : 'bg-white dark:bg-slate-900' }}">Invio ai terzisti</button>
-      <button type="button" wire:click="switchFase('rientro')" class="px-4 py-2 text-sm font-medium {{ $fase === 'rientro' ? 'bg-brand-600 text-white' : 'bg-white dark:bg-slate-900' }}">Rientro lavorazioni</button>
+    <div class="flex overflow-hidden rounded-full border border-slate-200 bg-white/70 shadow-sm backdrop-blur dark:border-slate-700">
+      <button
+        type="button"
+        wire:click="switchFase('invio')"
+        class="px-4 py-2 text-sm font-medium transition {{ $fase === 'invio' ? 'bg-brand-600 text-white' : 'text-slate-600 hover:bg-slate-100' }}">
+        Invio ai terzisti
+      </button>
+      <button
+        type="button"
+        wire:click="switchFase('rientro')"
+        class="px-4 py-2 text-sm font-medium transition {{ $fase === 'rientro' ? 'bg-brand-600 text-white' : 'text-slate-600 hover:bg-slate-100' }}">
+        Rientro lavorazioni
+      </button>
     </div>
   </div>
 
-  <div class="flex items-center gap-2 text-sm">
-    @php($labels = $fase === 'invio' ? [1=>'Dati invio',2=>'Articoli',3=>'Riepilogo'] : [1=>'Ordine e magazzino',2=>'Quantità rientro',3=>'Riepilogo'])
-    @foreach ($labels as $i => $label)
-      <div class="flex items-center gap-2">
-        <div class="w-8 h-8 rounded-full flex items-center justify-center {{ $step >= $i ? 'bg-violet-600 text-white' : 'bg-gray-200' }}">{{ $i }}</div>
-        <span class="{{ $step >= $i ? 'font-medium' : 'text-gray-500' }}">{{ $label }}</span>
-      </div>
-      @if($i < 3)<div class="flex-1 h-px bg-gray-200"></div>@endif
-    @endforeach
+  @php($labels = $fase === 'invio' ? [1=>'Dati invio',2=>'Articoli',3=>'Riepilogo'] : [1=>'Ordine e magazzino',2=>'Quantità rientro',3=>'Riepilogo'])
+
+  <div class="rounded-3xl border border-slate-200 bg-white/70 p-4 shadow-sm backdrop-blur">
+    <ol class="flex flex-col gap-4 text-sm md:flex-row md:items-center">
+      @foreach ($labels as $i => $label)
+        <li class="flex items-center gap-3">
+          <div class="flex h-9 w-9 items-center justify-center rounded-full border transition-all duration-200 {{ $step >= $i ? 'border-violet-500 bg-violet-500 text-white shadow-inner' : 'border-slate-200 bg-slate-100 text-slate-500' }}">
+            {{ $i }}
+          </div>
+          <div class="flex flex-col">
+            <span class="font-semibold {{ $step >= $i ? 'text-slate-900' : 'text-slate-500' }}">{{ $label }}</span>
+            <span class="text-xs text-slate-400">Passo {{ $i }} di {{ count($labels) }}</span>
+          </div>
+        </li>
+        @if($i < count($labels))
+          <div class="hidden flex-1 md:block">
+            <div class="h-0.5 rounded-full bg-gradient-to-r from-violet-200 via-violet-500 to-violet-200 opacity-70"></div>
+          </div>
+        @endif
+      @endforeach
+    </ol>
   </div>
 
   @if($fase === 'invio')
-    @if($step === 1)
-      <div class="card space-y-4">
+    @if($step == 1)
+      <div class="space-y-6 rounded-3xl border border-slate-200 bg-white/80 p-5 shadow-sm backdrop-blur">
         <div>
           <label class="block text-sm font-medium">Terzista</label>
           <select wire:model="invio.terzista_id" class="w-full border rounded-xl p-2">
@@ -70,14 +92,14 @@
       </div>
     @endif
 
-    @if($step === 2)
-      <div class="card space-y-4">
+    @if($step == 2)
+      <div class="space-y-5 rounded-3xl border border-slate-200 bg-white/80 p-5 shadow-sm backdrop-blur">
         <div class="flex items-center justify-between">
           <h2 class="font-medium">Articoli da inviare</h2>
           <button type="button" class="btn-secondary" wire:click="addRiga">+ Aggiungi riga</button>
         </div>
         @foreach($righe as $i => $riga)
-          <div class="grid grid-cols-1 lg:grid-cols-12 gap-3 items-end">
+          <div class="grid grid-cols-1 items-end gap-3 rounded-2xl border border-slate-100 bg-slate-50/60 p-4 lg:grid-cols-12">
             <div class="lg:col-span-5">
               <label class="block text-sm">Articolo</label>
               <select wire:model="righe.{{ $i }}.articolo_id" class="w-full border rounded-xl p-2">
@@ -107,8 +129,8 @@
       </div>
     @endif
 
-    @if($step === 3)
-      <div class="card space-y-4">
+    @if($step == 3)
+      <div class="space-y-5 rounded-3xl border border-slate-200 bg-white/80 p-5 shadow-sm backdrop-blur">
         <h2 class="font-medium">Riepilogo invio</h2>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
           <div>
@@ -156,8 +178,8 @@
       </div>
     @endif
   @else
-    @if($step === 1)
-      <div class="card space-y-4">
+    @if($step == 1)
+      <div class="space-y-6 rounded-3xl border border-slate-200 bg-white/80 p-5 shadow-sm backdrop-blur">
         <div>
           <label class="block text-sm font-medium">Ordine conto lavoro</label>
           <select wire:model="rientro.ordine_id" class="w-full border rounded-xl p-2">
@@ -197,8 +219,8 @@
       </div>
     @endif
 
-    @if($step === 2)
-      <div class="card space-y-4">
+    @if($step == 2)
+      <div class="space-y-5 rounded-3xl border border-slate-200 bg-white/80 p-5 shadow-sm backdrop-blur">
         <h2 class="font-medium">Quantità da rientrare</h2>
         <div class="overflow-x-auto">
           <table class="min-w-full text-sm">
@@ -236,8 +258,8 @@
       </div>
     @endif
 
-    @if($step === 3)
-      <div class="card space-y-4">
+    @if($step == 3)
+      <div class="space-y-5 rounded-3xl border border-slate-200 bg-white/80 p-5 shadow-sm backdrop-blur">
         <h2 class="font-medium">Riepilogo rientro</h2>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
           <div>
@@ -282,8 +304,8 @@
     @endif
   @endif
 
-  <div class="flex justify-between">
-    <button type="button" class="btn-secondary" wire:click="back" @disabled($step===1)>Indietro</button>
+  <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+    <button type="button" class="btn-secondary" wire:click="back" @disabled($step==1)>Indietro</button>
     @if($step < 3)
       <button type="button" class="btn-primary" wire:click="next">Avanti</button>
     @else
