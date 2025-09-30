@@ -5,9 +5,11 @@ namespace App\Livewire\Movimenti;
 use App\Models\{Articolo, Magazzino, Movimento, OrdineContoLavoro, RigaOCL, Terzista, Ubicazione};
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
+use Illuminate\Validation\ValidationException;
 
 #[Layout('layouts.app')]
 class ContoLavoroWizard extends Component
@@ -55,6 +57,7 @@ class ContoLavoroWizard extends Component
         $this->fase = $fase;
         $this->step = 1;
         $this->riepilogo = [];
+        $this->resetErrorBag();
     }
 
     public function updatedInvioMagazzinoId($value): void
@@ -85,21 +88,43 @@ class ContoLavoroWizard extends Component
 
     public function next(): void
     {
-        $this->validateStep($this->step);
-        if ($this->fase === 'invio' && $this->step === 2) {
-            $this->buildRiepilogoInvio();
+        try {
+            $this->validateStep($this->step);
+            if ($this->fase === 'invio' && $this->step === 2) {
+                $this->buildRiepilogoInvio();
+            }
+            if ($this->fase === 'rientro' && $this->step === 2) {
+                $this->buildRiepilogoRientro();
+            }
+
+            $this->step = min($this->step + 1, $this->maxStep());
+            $this->resetErrorBag();
         }
-        if ($this->fase === 'rientro' && $this->step === 2) {
-            $this->buildRiepilogoRientro();
+        catch (ValidationException $e) {
+            $this->setErrorBag($e->validator->getMessageBag());
+            $this->addError('general', 'Controlla i campi evidenziati e riprova.');
         }
-        $this->step++;
+        catch (\Throwable $e) {
+            Log::error('Errore avanzamento wizard conto lavoro', [
+                'fase' => $this->fase,
+                'step' => $this->step,
+                'message' => $e->getMessage(),
+            ]);
+            $this->addError('general', 'Non è stato possibile avanzare, riprovare tra qualche istante.');
+        }
     }
 
     public function back(): void
     {
         if ($this->step > 1) {
             $this->step--;
+            $this->resetErrorBag('general');
         }
+    }
+
+    protected function maxStep(): int
+    {
+        return 3;
     }
 
     protected function validateStep(int $step): void

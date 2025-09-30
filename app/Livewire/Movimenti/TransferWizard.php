@@ -3,6 +3,7 @@ namespace App\Livewire\Movimenti;
 
 use App\Models\{Articolo,Magazzino,Movimento,Ubicazione};
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
@@ -33,14 +34,27 @@ class TransferWizard extends Component
 
     public function next(): void
     {
-        $this->validateStep($this->step);
-    
-        // 👇 se sto uscendo dallo step 3, preparo il riepilogo per lo step 4
-        if ($this->step === 3) {
-            $this->buildRiepilogo();
+        try {
+            $this->validateStep($this->step);
+
+            if ($this->step === 3) {
+                $this->buildRiepilogo();
+            }
+
+            $this->step = min($this->step + 1, $this->maxStep());
+            $this->resetErrorBag();
         }
-    
-        $this->step++;
+        catch (ValidationException $e) {
+            $this->setErrorBag($e->validator->getMessageBag());
+            $this->addError('general', 'Controlla i campi evidenziati e riprova.');
+        }
+        catch (\Throwable $e) {
+            Log::error('Errore avanzamento wizard trasferimento', [
+                'message' => $e->getMessage(),
+                'step' => $this->step,
+            ]);
+            $this->addError('general', 'Avanzamento non riuscito, riprova a breve.');
+        }
     }
     private function buildRiepilogo(): void
     {
@@ -70,7 +84,18 @@ class TransferWizard extends Component
             })->all(),
         ];
     }
-    public function back(): void { if($this->step>1) $this->step--; }
+    public function back(): void
+    {
+        if ($this->step > 1) {
+            $this->step--;
+            $this->resetErrorBag('general');
+        }
+    }
+
+    protected function maxStep(): int
+    {
+        return 4;
+    }
 
     protected function validateStep(int $step): void {
         if ($step === 1) {

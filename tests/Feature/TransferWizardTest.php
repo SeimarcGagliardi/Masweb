@@ -1,32 +1,43 @@
-<?php // tests/Feature/TransferWizardTest.php
-use App\Models\{User,Articolo,Magazzino,Movimento};
+<?php
+
+namespace Tests\Feature;
+
+use App\Models\Articolo;
+use App\Models\Magazzino;
+use App\Models\Movimento;
+use App\Models\User;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Str;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
+use Tests\TestCase;
 
-it('salva un trasferimento creando OUT e IN con stesso link_logico', function () {
-    $user = User::factory()->create();
-    Permission::findOrCreate('movimenti.transfer');
-    $role = Role::findOrCreate('Operatore');
-    $role->givePermissionTo('movimenti.transfer');
-    $user->assignRole($role);
+class TransferWizardTest extends TestCase
+{
+    use RefreshDatabase;
 
-    $this->actingAs($user);
+    public function test_salva_movimenti_collegati_con_link_logico(): void
+    {
+        $user = User::factory()->create();
+        Permission::findOrCreate('movimenti.transfer');
+        $role = Role::findOrCreate('Operatore');
+        $role->givePermissionTo('movimenti.transfer');
+        $user->assignRole($role);
 
-    $a = Articolo::factory()->create();
-    $m1 = Magazzino::factory()->create();
-    $m2 = Magazzino::factory()->create();
+        $this->actingAs($user);
 
-    // Simula chiamata al metodo di salvataggio (più semplice: crea direttamente i movimenti come farebbe il componente)
-    $response = $this->post('/testing/transfer', [  // rotta fittizia, oppure testa il Model
-        // in un progetto reale useremmo Livewire testing, qui validiamo il comportamento atteso del DB
-    ]);
+        $articolo = Articolo::factory()->create();
+        $magazzinoOrig = Magazzino::factory()->create();
+        $magazzinoDest = Magazzino::factory()->create();
 
-    $link = (string) \Illuminate\Support\Str::uuid();
-    Movimento::create(['tipo'=>'TRASF','articolo_id'=>$a->id,'qta'=>5,'magazzino_orig'=>$m1->id,'link_logico'=>$link]);
-    Movimento::create(['tipo'=>'TRASF','articolo_id'=>$a->id,'qta'=>5,'magazzino_dest'=>$m2->id,'link_logico'=>$link]);
+        $link = (string) Str::uuid();
+        Movimento::create(['tipo' => 'TRASF','articolo_id' => $articolo->id,'qta' => 5,'magazzino_orig' => $magazzinoOrig->id,'link_logico' => $link]);
+        Movimento::create(['tipo' => 'TRASF','articolo_id' => $articolo->id,'qta' => 5,'magazzino_dest' => $magazzinoDest->id,'link_logico' => $link]);
 
-    $rows = Movimento::where('link_logico',$link)->get();
-    expect($rows)->toHaveCount(2)
-      ->and($rows->pluck('tipo')->unique()->all())->toEqual(['TRASF'])
-      ->and($rows->pluck('articolo_id')->unique()->first())->toEqual($a->id);
-});
+        $rows = Movimento::where('link_logico', $link)->get();
+
+        $this->assertCount(2, $rows);
+        $this->assertEquals(['TRASF'], $rows->pluck('tipo')->unique()->all());
+        $this->assertSame($articolo->id, $rows->pluck('articolo_id')->unique()->first());
+    }
+}

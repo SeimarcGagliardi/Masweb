@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="420" height="320" viewBox="0 0 420 320">
+  <defs>
+    <linearGradient id="loomGradient" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#8b5cf6"/>
+      <stop offset="100%" stop-color="#ec4899"/>
+    </linearGradient>
+    <linearGradient id="thread" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#fdf2f8"/>
+      <stop offset="100%" stop-color="#fef3c7"/>
+    </linearGradient>
+  </defs>
+  <rect width="420" height="320" rx="32" fill="#f5f3ff"/>
+  <rect x="30" y="40" width="360" height="240" rx="28" fill="url(#loomGradient)" opacity="0.15"/>
+  <g stroke="#8b5cf6" stroke-width="10" stroke-linecap="round" opacity="0.7">
+    <path d="M70 60v200M140 60v200M210 60v200M280 60v200M350 60v200"/>
+  </g>
+  <g stroke="#ec4899" stroke-width="6" stroke-linecap="round" opacity="0.6">
+    <path d="M60 110h300M60 150h300M60 190h300"/>
+  </g>
+  <g fill="url(#thread)" opacity="0.8">
+    <rect x="75" y="80" width="40" height="160" rx="12"/>
+    <rect x="215" y="80" width="40" height="160" rx="12"/>
+    <rect x="285" y="80" width="40" height="160" rx="12"/>
+  </g>
+</svg>

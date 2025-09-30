@@ -45,4 +45,77 @@
   }
   .tile-title { @apply mt-2 text-base font-semibold; }
   .tile-sub   { @apply text-xs text-slate-600 dark:text-slate-400; }
+
+  .wizard-frame {
+    @apply relative isolate overflow-hidden rounded-[36px] border border-white/70 bg-white/80 shadow-xl backdrop-blur-lg ring-1 ring-slate-200/60;
+  }
+
+  .wizard-frame::before {
+    content: '';
+    @apply absolute inset-0 bg-gradient-to-br from-amber-50 via-white to-sky-50 opacity-90;
+  }
+
+  .wizard-frame::after {
+    content: '';
+    background-image: url('/images/knit-fibers.svg');
+    background-size: cover;
+    background-repeat: repeat;
+    @apply absolute inset-0 opacity-20 mix-blend-multiply;
+  }
+
+  .wizard-surface {
+    @apply relative z-10 space-y-8 p-6 sm:p-8 lg:p-10;
+  }
+
+  .wizard-hero {
+    @apply grid gap-6 lg:grid-cols-[1fr_auto] items-center;
+  }
+
+  .wizard-hero-badge {
+    @apply inline-flex items-center gap-2 rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold uppercase text-amber-700 shadow-sm;
+  }
+
+  .wizard-stepper {
+    @apply rounded-3xl border border-white/80 bg-white/70 shadow-inner backdrop-blur;
+  }
+
+  .wizard-stepper ol {
+    @apply grid gap-4 sm:grid-cols-2 lg:flex lg:flex-row lg:items-center lg:justify-between px-4 py-5 text-sm;
+  }
+
+  .wizard-stepper li {
+    @apply flex items-center gap-3;
+  }
+
+  .wizard-step-indicator {
+    @apply flex h-10 w-10 items-center justify-center rounded-full border-2 font-semibold transition-all duration-200;
+  }
+
+  .wizard-panel {
+    @apply space-y-5 rounded-3xl border border-white/70 bg-white/80 p-6 shadow-sm backdrop-blur;
+  }
+
+  .wizard-panel h2 {
+    @apply text-lg font-semibold text-slate-800;
+  }
+
+  .wizard-error {
+    @apply rounded-2xl border border-rose-200 bg-rose-50/70 px-4 py-3 text-sm font-medium text-rose-700 shadow-sm;
+  }
+
+  .wizard-success {
+    @apply rounded-2xl border border-emerald-200 bg-emerald-50/70 px-4 py-3 text-sm font-medium text-emerald-700 shadow-sm;
+  }
+}
+
+@layer utilities {
+  .wizard-gradient {
+    @apply bg-gradient-to-br from-fuchsia-100 via-amber-50 to-cyan-100;
+  }
+
+  .wizard-grid-overlay {
+    background-image: linear-gradient(to right, rgba(15, 23, 42, 0.05) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(15, 23, 42, 0.05) 1px, transparent 1px);
+    background-size: 40px 40px;
+  }
 }

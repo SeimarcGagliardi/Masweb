@@ -1,166 +1,219 @@
-<div class="mx-auto max-w-5xl p-4 space-y-6">
-  <h1 class="text-2xl font-semibold">Registrazione carico</h1>
-
-  <div class="flex items-center gap-2 text-sm">
-    @foreach ([1=>'Dati generali',2=>'Articoli',3=>'Riepilogo'] as $i => $label)
-      <div class="flex items-center gap-2">
-        <div class="w-8 h-8 rounded-full flex items-center justify-center {{ $step >= $i ? 'bg-green-600 text-white' : 'bg-gray-200' }}">{{ $i }}</div>
-        <span class="{{ $step >= $i ? 'font-medium' : 'text-gray-500' }}">{{ $label }}</span>
-      </div>
-      @if($i < 3)<div class="flex-1 h-px bg-gray-200"></div>@endif
-    @endforeach
-  </div>
-
-  @if($step === 1)
-    <div class="card space-y-4">
-      <div>
-        <label class="block text-sm font-medium">Magazzino di destinazione</label>
-        <select wire:model="contesto.magazzino_id" class="w-full border rounded-xl p-2">
-          <option value="">— seleziona —</option>
-          @foreach($magazzini as $m)
-            <option value="{{ $m->id }}">{{ $m->descrizione }} ({{ $m->codice }})</option>
-          @endforeach
-        </select>
-        @error('contesto.magazzino_id')<p class="text-sm text-red-600">{{ $message }}</p>@enderror
-      </div>
-
-      @if($ubicazioni->isNotEmpty())
-        <div>
-          <label class="block text-sm font-medium">Ubicazione</label>
-          <select wire:model="contesto.ubicazione_id" class="w-full border rounded-xl p-2">
-            <option value="">— seleziona —</option>
-            @foreach($ubicazioni as $u)
-              <option value="{{ $u->id }}">{{ $u->codice }} — {{ $u->descrizione }}</option>
-            @endforeach
-          </select>
-          @error('contesto.ubicazione_id')<p class="text-sm text-red-600">{{ $message }}</p>@enderror
+<div class="mx-auto max-w-6xl px-4 py-6">
+  <div class="wizard-frame wizard-grid-overlay">
+    <div class="wizard-surface" wire:key="carico-step-shell">
+      <div class="wizard-hero">
+        <div class="space-y-3">
+          <span class="wizard-hero-badge">Nuovo carico</span>
+          <h1 class="text-3xl font-semibold text-slate-900">
+            Registra il carico di filati e accessori in pochi passi
+          </h1>
+          <p class="text-sm text-slate-600 leading-relaxed">
+            Completa i campi richiesti e traccia i movimenti di magazzino con una grafica ispirata alla maglieria.
+            I passaggi successivi si attivano automaticamente quando i dati sono validi.
+          </p>
         </div>
-      @elseif($contesto['magazzino_id'])
-        <p class="text-xs text-slate-500">Il magazzino selezionato non ha ubicazioni attive: il carico sarà registrato a livello magazzino.</p>
+        <div class="hidden lg:block">
+          <img src="{{ asset('images/warehouse-racks.svg') }}" alt="Illustrazione di scaffalature di magazzino" class="h-48 w-auto drop-shadow-xl" />
+        </div>
+      </div>
+
+      @php
+        $wizardSteps = [
+          1 => 'Dati generali',
+          2 => 'Articoli',
+          3 => 'Riepilogo',
+        ];
+      @endphp
+
+      <div class="wizard-stepper">
+        <ol>
+          @foreach($wizardSteps as $i => $label)
+            <li>
+              <div class="wizard-step-indicator {{ $step >= $i ? 'border-emerald-500 bg-emerald-500 text-white shadow-lg shadow-emerald-200/80' : 'border-slate-200 bg-white text-slate-500' }}">
+                {{ $i }}
+              </div>
+              <div class="flex flex-col">
+                <span class="font-semibold {{ $step >= $i ? 'text-slate-900' : 'text-slate-500' }}">{{ $label }}</span>
+                <span class="text-xs text-slate-400">Passo {{ $i }} di {{ count($wizardSteps) }}</span>
+              </div>
+            </li>
+          @endforeach
+        </ol>
+      </div>
+
+      @if ($errors->has('general'))
+        <div class="wizard-error">{{ $errors->first('general') }}</div>
+      @endif
+      @if (session('ok'))
+        <div class="wizard-success">{{ session('ok') }}</div>
       @endif
 
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div>
-          <label class="block text-sm">Commessa</label>
-          <input type="text" wire:model.lazy="contesto.commessa" class="w-full border rounded-xl p-2" placeholder="Es. PRJ-2025" />
-          @error('contesto.commessa')<p class="text-sm text-red-600">{{ $message }}</p>@enderror
-        </div>
-        <div>
-          <label class="block text-sm">Riferimento documento</label>
-          <input type="text" wire:model.lazy="contesto.riferimento" class="w-full border rounded-xl p-2" placeholder="DDT, ordine..." />
-          @error('contesto.riferimento')<p class="text-sm text-red-600">{{ $message }}</p>@enderror
-        </div>
-        <div>
-          <label class="block text-sm">Bagno</label>
-          <input type="text" wire:model.lazy="contesto.bagno" class="w-full border rounded-xl p-2" />
-        </div>
-        <div>
-          <label class="block text-sm">Linea</label>
-          <input type="text" wire:model.lazy="contesto.linea" class="w-full border rounded-xl p-2" />
-        </div>
-      </div>
+      <div class="space-y-8" wire:key="carico-step-{{ $step }}">
+        @if($step === 1)
+          <div class="wizard-panel">
+            <div class="grid gap-5 lg:grid-cols-2">
+              <div class="space-y-4">
+                <label class="block text-sm font-medium text-slate-700">Magazzino di destinazione</label>
+                <select wire:model.live="contesto.magazzino_id" class="w-full rounded-2xl border border-slate-200 bg-white/90 px-3 py-2 text-sm shadow-inner focus:border-emerald-500 focus:ring-emerald-500">
+                  <option value="">— seleziona —</option>
+                  @foreach($magazzini as $m)
+                    <option value="{{ $m->id }}">{{ $m->descrizione }} ({{ $m->codice }})</option>
+                  @endforeach
+                </select>
+                @error('contesto.magazzino_id')<p class="text-sm text-rose-600">{{ $message }}</p>@enderror
 
-      <div>
-        <label class="block text-sm">Note operative</label>
-        <textarea wire:model.lazy="contesto.note" rows="3" class="w-full border rounded-xl p-2" placeholder="Indicazioni per il magazzino..."></textarea>
-      </div>
-    </div>
-  @endif
+                @if($ubicazioni->isNotEmpty())
+                  <div class="space-y-2">
+                    <label class="block text-sm font-medium text-slate-700">Ubicazione interna</label>
+                    <select wire:model.live="contesto.ubicazione_id" class="w-full rounded-2xl border border-slate-200 bg-white/90 px-3 py-2 text-sm shadow-inner focus:border-emerald-500 focus:ring-emerald-500">
+                      <option value="">— seleziona —</option>
+                      @foreach($ubicazioni as $u)
+                        <option value="{{ $u->id }}">{{ $u->codice }} — {{ $u->descrizione }}</option>
+                      @endforeach
+                    </select>
+                    @error('contesto.ubicazione_id')<p class="text-sm text-rose-600">{{ $message }}</p>@enderror
+                  </div>
+                @elseif($contesto['magazzino_id'])
+                  <p class="text-xs text-slate-500">Il magazzino selezionato non ha ubicazioni attive: il carico sarà registrato a livello magazzino.</p>
+                @endif
+              </div>
 
-  @if($step === 2)
-    <div class="card space-y-4">
-      <div class="flex items-center justify-between">
-        <h2 class="font-medium">Articoli in ingresso</h2>
-        <button type="button" wire:click="addRiga" class="btn-secondary">+ Aggiungi riga</button>
-      </div>
+              <div class="space-y-4">
+                <div class="grid gap-3 sm:grid-cols-2">
+                  <div>
+                    <label class="block text-sm font-medium text-slate-700">Commessa</label>
+                    <input type="text" wire:model.live="contesto.commessa" class="w-full rounded-2xl border border-slate-200 bg-white/90 px-3 py-2 text-sm shadow-inner focus:border-emerald-500 focus:ring-emerald-500" placeholder="Es. PRJ-2025" />
+                    @error('contesto.commessa')<p class="text-sm text-rose-600">{{ $message }}</p>@enderror
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-slate-700">Riferimento documento</label>
+                    <input type="text" wire:model.live="contesto.riferimento" class="w-full rounded-2xl border border-slate-200 bg-white/90 px-3 py-2 text-sm shadow-inner focus:border-emerald-500 focus:ring-emerald-500" placeholder="DDT, ordine..." />
+                    @error('contesto.riferimento')<p class="text-sm text-rose-600">{{ $message }}</p>@enderror
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-slate-700">Bagno</label>
+                    <input type="text" wire:model.live="contesto.bagno" class="w-full rounded-2xl border border-slate-200 bg-white/90 px-3 py-2 text-sm shadow-inner focus:border-emerald-500 focus:ring-emerald-500" />
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-slate-700">Linea</label>
+                    <input type="text" wire:model.live="contesto.linea" class="w-full rounded-2xl border border-slate-200 bg-white/90 px-3 py-2 text-sm shadow-inner focus:border-emerald-500 focus:ring-emerald-500" />
+                  </div>
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-slate-700">Note operative</label>
+                  <textarea wire:model.live="contesto.note" rows="3" class="w-full rounded-2xl border border-slate-200 bg-white/90 px-3 py-2 text-sm shadow-inner focus:border-emerald-500 focus:ring-emerald-500" placeholder="Indicazioni per il magazzino..."></textarea>
+                </div>
+              </div>
+            </div>
+          </div>
+        @endif
 
-      @foreach($righe as $i => $riga)
-        <div class="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
-          <div class="md:col-span-6">
-            <label class="block text-sm">Articolo</label>
-            <select wire:model="righe.{{ $i }}.articolo_id" class="w-full border rounded-xl p-2">
-              <option value="">— seleziona —</option>
-              @foreach($articoli as $a)
-                <option value="{{ $a->id }}">{{ $a->codice }} — {{ $a->descrizione }}</option>
+        @if($step === 2)
+          <div class="wizard-panel space-y-6">
+            <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+              <div>
+                <h2>Articoli in ingresso</h2>
+                <p class="text-sm text-slate-500">Aggiungi le bobine, i filati o gli accessori che entrano in magazzino.</p>
+              </div>
+              <button type="button" wire:click="addRiga" class="inline-flex items-center gap-2 rounded-full bg-emerald-100 px-4 py-2 text-sm font-medium text-emerald-700 shadow-sm transition hover:bg-emerald-200">
+                <span class="text-lg">＋</span> Aggiungi riga
+              </button>
+            </div>
+
+            <div class="space-y-5">
+              @foreach($righe as $i => $riga)
+                <div class="rounded-3xl border border-emerald-100/80 bg-white/90 p-5 shadow-inner" wire:key="carico-riga-{{ $i }}">
+                  <div class="grid gap-4 md:grid-cols-12 md:items-end">
+                    <div class="md:col-span-6">
+                      <label class="block text-sm font-medium text-slate-700">Articolo</label>
+                      <select wire:model.live="righe.{{ $i }}.articolo_id" class="w-full rounded-2xl border border-slate-200 bg-white/90 px-3 py-2 text-sm shadow-inner focus:border-emerald-500 focus:ring-emerald-500">
+                        <option value="">— seleziona —</option>
+                        @foreach($articoli as $a)
+                          <option value="{{ $a->id }}">{{ $a->codice }} — {{ $a->descrizione }}</option>
+                        @endforeach
+                      </select>
+                      @error("righe.$i.articolo_id")<p class="text-sm text-rose-600">{{ $message }}</p>@enderror
+                    </div>
+                    <div class="md:col-span-3">
+                      <label class="block text-sm font-medium text-slate-700">Q.tà (kg/pz)</label>
+                      <input type="number" step="0.001" min="0" wire:model.live="righe.{{ $i }}.qta" class="w-full rounded-2xl border border-slate-200 bg-white/90 px-3 py-2 text-sm shadow-inner focus:border-emerald-500 focus:ring-emerald-500" />
+                      @error("righe.$i.qta")<p class="text-sm text-rose-600">{{ $message }}</p>@enderror
+                    </div>
+                    <div class="md:col-span-2">
+                      <label class="block text-sm font-medium text-slate-700">Lotto</label>
+                      <input type="text" wire:model.live="righe.{{ $i }}.lotto" class="w-full rounded-2xl border border-slate-200 bg-white/90 px-3 py-2 text-sm shadow-inner focus:border-emerald-500 focus:ring-emerald-500" />
+                      @error("righe.$i.lotto")<p class="text-sm text-rose-600">{{ $message }}</p>@enderror
+                    </div>
+                    <div class="md:col-span-1">
+                      <button type="button" wire:click="removeRiga({{ $i }})" class="w-full rounded-2xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-medium text-rose-600 transition hover:bg-rose-100">🗑️</button>
+                    </div>
+                  </div>
+                </div>
               @endforeach
-            </select>
-            @error("righe.$i.articolo_id")<p class="text-sm text-red-600">{{ $message }}</p>@enderror
+            </div>
           </div>
-          <div class="md:col-span-3">
-            <label class="block text-sm">Q.tà (kg/pz)</label>
-            <input type="number" step="0.001" min="0" wire:model.lazy="righe.{{ $i }}.qta" class="w-full border rounded-xl p-2" />
-            @error("righe.$i.qta")<p class="text-sm text-red-600">{{ $message }}</p>@enderror
-          </div>
-          <div class="md:col-span-2">
-            <label class="block text-sm">Lotto</label>
-            <input type="text" wire:model.lazy="righe.{{ $i }}.lotto" class="w-full border rounded-xl p-2" />
-            @error("righe.$i.lotto")<p class="text-sm text-red-600">{{ $message }}</p>@enderror
-          </div>
-          <div class="md:col-span-1">
-            <button type="button" wire:click="removeRiga({{ $i }})" class="w-full border rounded-xl p-2 hover:bg-red-50">🗑️</button>
-          </div>
-        </div>
-        <hr class="border-dashed">
-      @endforeach
-    </div>
-  @endif
+        @endif
 
-  @if($step === 3)
-    <div class="card space-y-4">
-      <h2 class="font-medium">Riepilogo carico</h2>
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
-        <div>
-          <div class="font-semibold">Magazzino</div>
-          <div>{{ $riepilogo['magazzino'] ?? '—' }}</div>
-          @if($riepilogo['ubicazione'] ?? false)
-            <div class="text-xs text-slate-500">Ubicazione: {{ $riepilogo['ubicazione'] }}</div>
-          @endif
-        </div>
-        <div>
-          <div class="font-semibold">Commessa</div>
-          <div>{{ $contesto['commessa'] ?: '—' }}</div>
-          <div class="text-xs text-slate-500">Rif: {{ $contesto['riferimento'] ?: '—' }}</div>
-        </div>
+        @if($step === 3)
+          <div class="wizard-panel space-y-6">
+            <div>
+              <h2>Riepilogo carico</h2>
+              <p class="text-sm text-slate-500">Verifica i dati prima di confermare il movimento in magazzino.</p>
+            </div>
+            <div class="grid gap-4 sm:grid-cols-2 text-sm">
+              <div class="rounded-2xl border border-emerald-100/70 bg-emerald-50/60 p-4">
+                <div class="text-xs font-semibold uppercase tracking-wide text-emerald-600">Magazzino</div>
+                <div class="text-base font-semibold text-slate-800">{{ $riepilogo['magazzino'] ?? '—' }}</div>
+                @if($riepilogo['ubicazione'] ?? false)
+                  <div class="text-xs text-slate-500">Ubicazione: {{ $riepilogo['ubicazione'] }}</div>
+                @endif
+              </div>
+              <div class="rounded-2xl border border-amber-100/70 bg-amber-50/60 p-4">
+                <div class="text-xs font-semibold uppercase tracking-wide text-amber-600">Commessa</div>
+                <div class="text-base font-semibold text-slate-800">{{ $contesto['commessa'] ?: '—' }}</div>
+                <div class="text-xs text-slate-500">Rif: {{ $contesto['riferimento'] ?: '—' }}</div>
+              </div>
+            </div>
+            <div class="overflow-hidden rounded-3xl border border-slate-200/60">
+              <table class="min-w-full divide-y divide-slate-200 text-sm">
+                <thead class="bg-slate-50/60">
+                  <tr>
+                    <th class="px-4 py-3 text-left font-semibold text-slate-600">Articolo</th>
+                    <th class="px-4 py-3 text-right font-semibold text-slate-600">Q.tà</th>
+                    <th class="px-4 py-3 text-left font-semibold text-slate-600">Lotto</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 bg-white/80">
+                  @foreach($riepilogo['righe'] ?? [] as $r)
+                    <tr>
+                      <td class="px-4 py-3">{{ $r['codice'] }} — {{ $r['descrizione'] }}</td>
+                      <td class="px-4 py-3 text-right font-medium text-slate-700">{{ $r['qta'] }}</td>
+                      <td class="px-4 py-3 text-slate-500">{{ $r['lotto'] ?: '—' }}</td>
+                    </tr>
+                  @endforeach
+                </tbody>
+              </table>
+            </div>
+          </div>
+        @endif
       </div>
-      <div class="overflow-x-auto">
-        <table class="min-w-full text-sm">
-          <thead>
-            <tr class="border-b">
-              <th class="text-left py-2">Articolo</th>
-              <th class="text-right">Q.tà</th>
-              <th class="text-left">Lotto</th>
-            </tr>
-          </thead>
-          <tbody>
-            @foreach($riepilogo['righe'] ?? [] as $r)
-              <tr class="border-b">
-                <td class="py-2">{{ $r['codice'] }} — {{ $r['descrizione'] }}</td>
-                <td class="text-right">{{ $r['qta'] }}</td>
-                <td>{{ $r['lotto'] ?: '—' }}</td>
-              </tr>
-            @endforeach
-          </tbody>
-        </table>
+
+      <div class="flex flex-col gap-3 pt-2 sm:flex-row sm:items-center sm:justify-between">
+        <button type="button" class="btn-secondary" wire:click="back" wire:target="back" wire:loading.attr="disabled" @disabled($step===1)>
+          Indietro
+        </button>
+        @if($step < 3)
+          <button type="button" class="btn-primary bg-gradient-to-r from-emerald-500 to-emerald-600" wire:click="next" wire:target="next" wire:loading.attr="disabled">
+            <span wire:loading.remove wire:target="next">Avanti</span>
+            <span wire:loading wire:target="next">Controllo dati…</span>
+          </button>
+        @else
+          <button type="button" class="btn-primary bg-gradient-to-r from-emerald-500 to-emerald-600" wire:click="conferma" wire:target="conferma" wire:loading.attr="disabled">
+            <span wire:loading.remove wire:target="conferma">Conferma carico</span>
+            <span wire:loading wire:target="conferma">Salvataggio…</span>
+          </button>
+        @endif
       </div>
     </div>
-  @endif
-
-  <div class="flex justify-between">
-    <button type="button" class="btn-secondary" wire:click="back" @disabled($step===1)>Indietro</button>
-    @if($step < 3)
-      <button type="button" class="btn-primary" wire:click="next">Avanti</button>
-    @else
-      <button type="button" class="btn-primary" wire:click="conferma" wire:loading.attr="disabled">
-        <span wire:loading.remove>Conferma carico</span>
-        <span wire:loading>Salvataggio…</span>
-      </button>
-    @endif
   </div>
-
-  @if ($errors->has('general'))
-    <div class="p-3 rounded-xl bg-red-50 text-red-800">{{ $errors->first('general') }}</div>
-  @endif
-  @if (session('ok'))
-    <div class="p-3 rounded-xl bg-green-50 text-green-800">{{ session('ok') }}</div>
-  @endif
 </div>

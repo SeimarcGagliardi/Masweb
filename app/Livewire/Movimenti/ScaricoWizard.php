@@ -4,9 +4,11 @@ namespace App\Livewire\Movimenti;
 
 use App\Models\{Articolo, Magazzino, Movimento, Ubicazione};
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
+use Illuminate\Validation\ValidationException;
 
 #[Layout('layouts.app')]
 class ScaricoWizard extends Component
@@ -54,18 +56,39 @@ class ScaricoWizard extends Component
 
     public function next(): void
     {
-        $this->validateStep($this->step);
-        if ($this->step === 2) {
-            $this->buildRiepilogo();
+        try {
+            $this->validateStep($this->step);
+            if ($this->step === 2) {
+                $this->buildRiepilogo();
+            }
+
+            $this->step = min($this->step + 1, $this->maxStep());
+            $this->resetErrorBag();
         }
-        $this->step++;
+        catch (ValidationException $e) {
+            $this->setErrorBag($e->validator->getMessageBag());
+            $this->addError('general', 'Controlla i campi evidenziati e riprova.');
+        }
+        catch (\Throwable $e) {
+            Log::error('Errore avanzamento wizard scarico', [
+                'message' => $e->getMessage(),
+                'step' => $this->step,
+            ]);
+            $this->addError('general', 'Impossibile avanzare, riprova tra poco.');
+        }
     }
 
     public function back(): void
     {
         if ($this->step > 1) {
             $this->step--;
+            $this->resetErrorBag('general');
         }
+    }
+
+    protected function maxStep(): int
+    {
+        return 3;
     }
 
     protected function validateStep(int $step): void
